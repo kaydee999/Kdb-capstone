@@ -1,0 +1,15 @@
+feature showTableSummary
+
+    before
+        // Code here will execute before the feature is run
+
+    after
+        // Code here will execute after the feature is run
+
+    should Check If Returns All Table Names In Process
+        expect 
+            asc[tables[]]~key showTableSummary[]
+            
+    should Return The Count For All Tables In Memory 
+        expect 
+            40~showTableSummary[][`spread]

@@ -1,0 +1,32 @@
+stages:
+  - publish
+
+publish:google-code:
+  stage: publish
+  resource_group: publish
+  image: gcr.io/google.com/cloudsdktool/google-cloud-cli:latest
+  variables:
+    SA_KEY_FILE: ${KX_ACADEMY_GCP_SA}
+    SA_EMAIL: course-gitlab-mirror@kx-academy-learn-jupyterhub.iam.gserviceaccount.com
+    GCP_PROJECT: kx-academy-learn-jupyterhub
+  script:
+    - |
+      set -x
+      
+      gcloud auth activate-service-account "${SA_EMAIL}" --key-file="${SA_KEY_FILE}" --project=${GCP_PROJECT}
+      
+      git config credential.'https://source.developers.google.com'.helper '!gcloud auth git-helper --ignore-unknown $@'
+      git remote add google "$(cat .gitremote.google)"
+      
+      git fetch
+      git fetch google
+      
+      # some useful commands for debugging
+      git remote -v
+      git status
+      git reflog
+      
+      git push google HEAD:$CI_COMMIT_BRANCH
+  rules:
+    # define when the job should run
+    - if: '$CI_COMMIT_BRANCH == "main"'

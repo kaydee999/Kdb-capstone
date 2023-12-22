@@ -1,0 +1,12 @@
+feature classifyTrades
+
+    before
+        // Code here will execute before the feature is run
+        test.testTab:([] price:50 60 50 40 ;side:`B`B`S`S;bid:45;ask:55);
+        test.expTab:test.testTab,'([]exQuality:1010b); 
+    after
+        // Code here will execute after the feature is run
+            
+    should exhibit a behaviour
+        expect a specific result
+          test.expTab ~ classifyTrades test.testTab

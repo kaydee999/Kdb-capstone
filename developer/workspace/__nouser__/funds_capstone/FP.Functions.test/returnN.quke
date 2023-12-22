@@ -1,0 +1,18 @@
+feature returnN
+
+    before
+        // Code here will execute before the feature is run
+        test.tab:-10?([]col: til 10);
+        test.top5col:([]col: 5 6 7 8 9);
+        test.bottom6:([]col: til 6);
+
+    after
+        // Code here will execute after the feature is run
+
+    should exhibit a behaviour
+        expect a specific result
+           test.top5col ~ returnN[`col;`top;5] test.tab
+
+    should exhibit a behaviour
+        expect a specific result
+           test.bottom6 ~ returnN[`col;`bottom;6] test.tab

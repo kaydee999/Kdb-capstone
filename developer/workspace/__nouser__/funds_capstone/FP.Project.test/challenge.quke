@@ -1,0 +1,185 @@
+//Functions are all tested elsewhere, this is to test for the created tables and other variables.
+
+feature exercise1.1
+    should Partitioned Tables Exist In Memory
+        expect a specific result
+            all `trade`nbbo`spread in tables[]
+         
+feature exercise1.3
+    before
+        .test.uniqueOpts: exec option_id from select distinct option_id from trade;       
+    should uniqueOpts Values Are Correct
+        expect
+            .test.uniqueOpts~uniqueOpts
+
+feature exercise1.5
+    should optRef Is Defined In Process
+        expect
+           `optRef in tables[]
+            
+feature exercise1.6
+    should instRef Is Defined In Process
+        expect
+           `instRef in tables[]
+
+feature exercise1.7
+    should messages Is Defined In Process
+        expect
+           `messages in tables[]
+
+feature exercise2.1
+    before 
+        //make the table as per the data generation method code
+        .test.instRef:([]inst_id:1+til 10; inst_syb : `AAPL`MSFT`NFLX`GOOGL`IBM`MCD`KO`TSLA`FB`RACE; inst_name:("Apple";"Microsoft";"Netflix";"Alphabet";"IBM";"Mc Donald's";"Coca-Cola";"Tesla";"Facebook";"Ferrari") );
+        .test.instRef: select from .test.instRef where inst_id in 7 8 9;
+        namegenerator : {[sy;dt;ot;sp](((string sy),"" sv "." vs string dt),string ot),string sp};
+        .test.optRef: ([]option_id:1+til 100; inst_id:(30#7),(40#8),(30#9); opt_type:100#`P`C);
+        update strike:30#(40 40 45 45 50 50 55 55 60 60), expiry:((10#enlist "07/20/2020"),(10#enlist "09/20/2020"),(10#enlist"11/20/2020")) from `.test.optRef where inst_id = 7;
+        update strike:40#(1400 1400 1500 1500 1600 1600 1700 1700 1800 1800), expiry:((10#enlist "07/20/2020"),(10#enlist "09/20/2020"),(10#enlist"11/20/2020"),(10#enlist"01/20/2021")) from `.test.optRef where inst_id = 8;
+        update strike:30#(230 230 240 240 250 250 260 260 270 270), expiry:((10#enlist "07/20/2020"),(10#enlist "09/20/2020"),(10#enlist"11/20/2020")) from `.test.optRef where inst_id = 9;
+        .test.optRef : (update exp2:"D"$expiry from .test.optRef) lj `inst_id xkey .test.instRef;
+        .test.optRef : update optionname : namegenerator ' [inst_syb;exp2;opt_type;strike] from .test.optRef;
+        .test.optRef : select option_id : `$optionname, inst_id, opt_type, strike, expiry from .test.optRef;
+        .test.optRef : update "D"$expiry from .test.optRef;
+    should optRef Has Correct Format
+        expect 
+            //check this matchs the 
+            .test.optRef ~ optRef
+            
+feature exercise2.2
+    before 
+        //make the table as per the data generation method code
+        .test.instRef:([]inst_id:1+til 10; inst_syb : `AAPL`MSFT`NFLX`GOOGL`IBM`MCD`KO`TSLA`FB`RACE; inst_name:("Apple";"Microsoft";"Netflix";"Alphabet";"IBM";"Mc Donald's";"Coca-Cola";"Tesla";"Facebook";"Ferrari") );
+        .test.instRef: select from .test.instRef where inst_id in 7 8 9;
+    should instRef Has Correct Format
+        expect 
+            //check this matchs the 
+            .test.instRef ~ instRef             
+                       
+feature exercise2.3
+    before 
+        .test.extractBrokerId:{[exchMsg] splitString: "-" vs exchMsg;"J"$$[exchMsg like "CME*"; splitString[2]; splitString[1]]};
+        .test.messages:update broker_id: .test.extractBrokerId each exch_message from ("**";enlist csv) 0:hsym `$getenv[`AX_WORKSPACE],"/FP.Data/message.csv";      
+    should messages Has Correct Format
+        expect
+            //check this matchs the 
+            //.test.instRef ~ optRef 
+            .test.messages ~ messages
+            
+feature exercise3.1
+    before
+            .test.tradeContext:  aj[`option_id`time;
+                select from trade where date = last date; 
+                `time xasc select option_id, time, bid, ask from nbbo where date = last date]; 
+    should tradeContext Is Defined In Process
+        expect 
+           `tradeContext in tables[]
+    should tradeContext Has Correct Format
+        expect 
+           .test.tradeContext ~ tradeContext
+ 
+feature exercise3.3
+    before
+        .test.badTrades:select from classifyTrades[tradeContext] where not exQuality;
+    should badTrades Is Defined In Process
+        expect
+           `badTrades in tables[]
+    should bad Trades Has Correct Format
+        expect a specific result
+           .test.badTrades ~ badTrades
+
+feature exercise3.4
+    before
+        .test.badTradesCsv:read0[hsym `$getenv[`AX_WORKSPACE],"/badTrades.csv"] 
+    should badTrades Is Saved In Correct Dir
+        expect
+           `badTrades.csv in key hsym `$getenv[`AX_WORKSPACE]
+   should Contents Of CSV File Is Correct
+        expect
+          .test.badTradesCsv ~ csv 0:badTrades
+            
+feature exercise4.1
+    before
+        .test.edge15: select sum edge,sum qty, numTrds:count i  
+                                by 15 xbar time.minute 
+                                from trade where date = last date; 
+    should edge15 Is Present In Process
+        expect
+           `edge15 in tables[]
+    should edge15 Table Format Is Correct
+        expect
+          .test.edge15 ~ edge15
+            
+feature exercise4.4
+    before
+        .test.top5EdgeTimes: returnN[`edge;`top;5] edge15; 
+    should top5EdgeTimes Is Defined In Process
+        expect
+           `top5EdgeTimes in tables[]
+    should top5EdgeTimes Has Correct Format
+        expect a specific result
+          .test.top5EdgeTimes ~ top5EdgeTimes 
+            
+feature exercise4.5
+    before
+        .test.bottom5QtyTimes: returnN[`qty;`bottom;5] edge15; 
+    should bottom5QtyTime Is Defined In Process
+        expect a specific result
+           `bottom5QtyTimes in tables[]
+    should If bottom5QtyTimes Has Correct Format
+        expect
+          .test.bottom5QtyTimes ~ bottom5QtyTimes          
+
+feature exercise4.6
+    before
+        .test.timeSeries: exec edge, qty, numTrds from edge15;
+    should timeSeries Is Defined In Process
+        expect a specific result
+           `timeSeries in key `.
+    should timeSeries Has Correct Format
+        expect
+          .test.timeSeries ~ timeSeries 
+                  
+feature exercise4.7
+    before
+        .test.edgeCor:timeSeries[`edge] cor/: timeSeries;
+    should edgeCor Is Defined In Process
+        expect a specific result
+           `edgeCor in key `.
+    should edgeCor Has Correct Format
+        expect 
+          .test.edgeCor ~ edgeCor
+
+feature exercise5.1
+    before
+        .test.optProfile: select numTrds:count i, avgEdge:avg edge, minQty:min qty, maxQty: max qty
+            by option_id from trade where date = last date;
+    should optProfile Is Defined In Process
+        expect
+           `optProfile in tables[]
+    should optProfile Has Correct Format And Values
+        expect
+          .test.optProfile ~ optProfile
+            
+feature exercise5.2
+    before
+        .test.edgeProfile: select numTrds:count i, avgEdge:avg edge, minQty:min qty, maxQty: max qty
+            by option_id from trade
+            where date = last date, edge > (avg;edge) fby option_id;
+    should edgeProfile Is Defined In Process
+        expect 
+           `edgeProfile in tables[]
+    should edgeProfile Has Correct Format And Values
+        expect 
+          .test.edgeProfile ~ edgeProfile
+            
+feature exercise5.3
+    before
+        .test.edgeProfileFull:(edgeProfile lj `option_id xkey optRef) lj `inst_id xkey instRef
+    should edgeProfileFull Is Defined In Process
+        expect 
+           `edgeProfileFull in tables[]
+    should edgeProfileFull Has Correct Format And Values
+        expect 
+          .test.edgeProfileFull ~ edgeProfileFull
+

@@ -1,0 +1,8 @@
+.*
+!.gitignore
+!.gitremote.*
+!.authorized_keys
+
+!.gitlab-ci.yml
+
+kxscm/module/FP.Setup/file/submit.q

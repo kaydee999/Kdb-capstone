@@ -1,0 +1,15 @@
+feature extractBrokerId
+
+    before
+        // Code here will execute before the feature is run
+
+    after
+        // Code here will execute after the feature is run
+
+    should exhibit a behaviour
+        expect a specific result
+          709~ extractBrokerId "CME-TSLA20200920C1700-709"
+            
+    should exhibit a behaviour
+        expect a specific result
+          708~ extractBrokerId "ISE-708-TSLA20200920C1700" 
