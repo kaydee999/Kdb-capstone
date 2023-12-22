@@ -551,6 +551,7 @@ edge (`avgEdge`), and min and max volume (`minQty`,`maxQty`) broken down by opti
 should be keyed on the column `option_id`.**
 ```q
 //your code here - or work in the scratchpad
+optProfile: select numTrds:count i, avgEdge:avg edge, minQty:min qty, maxQty:max qty by option_id from tradeLastDate
 ```
 
 
@@ -566,6 +567,7 @@ collected by that option. Again, the table should be keyed on the column `option
 
 ```q
 //your code here - or work in the scratchpad
+edgeProfile:select numTrds:count i, avgEdge:avg edge, minQty:min qty, maxQty:max qty by option_id from tradeLastDate where edge > (avg;edge) fby option_id
 ```
 
 
@@ -594,6 +596,7 @@ Again, the table should be keyed on the column `option_id`.**
 
 ```q
 //your code here - or work in the scratchpad
+edgeProfileFull:edgeProfile lj 1!(optRef lj (1!instRef))
 ```
 ### End of Sub Section testing
 
@@ -615,7 +618,7 @@ To be marked complete and receive your certificate there are two final steps: co
 2. To be marked completed, please run the below which will test the variables and functions you've 
 created: 
 ```q
-submitProject["<your email here>"]
+submitProject["kdaniel@kx.com"]
 ```
 
 We hope you enjoyed the course and found it worthwhile! 
