@@ -1,0 +1,9 @@
+feature .perm.users
+    before
+        .test.passwords:("bahrain22";"ilovelewisham";"redbulldoesntgivewings";"letmewinonce";"getmeallthedata")
+    should Check If Users Table Exists
+        expect
+            `users in tables[`.perm]
+    should Check Password Col Is Encrypted
+        expect
+           "X"=first exec t from meta .perm.users where c=`password

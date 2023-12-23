@@ -1,0 +1,16 @@
+feature .f1.checkSensor
+    before
+        .test.lapTable:([]date:4#2020.01.02;sensorId:((2#`tempBackLeft),(2#`tyrePressureFrontLeft));session:4#`P3;lapId:1 1 1 1;time:13:00:00.00 13:02:48.156 13:04:48.156 13:05:48.156;endTime:13:02:48.156 13:04:48.156 13:05:48.156 13:06:48.156;sensorValue:20.61916 20.56475 100.5 100.1) ;
+        .test.raceDay:([]sensorId:sensorId:((4#`tempBackLeft),(2#`tyrePressureFrontLeft));time:13:00:00.00+6?3000;lapId:6#1;units:((4#`degreesCel),(2#`pascals));sensorValue:((20+4?1.),200+2?1.);session:6#`R1); 
+    should Not Allowed To Use Select Keyword
+        expect
+            not string[.f1.checkSensor] like "*select*"
+    should Return Correct Values For Temp
+        expect
+            ("temp")~(first 4#'string exec sensorId from .f1.checkSensor[.test.raceDay;.test.lapTable;`temp])
+    should Return Correct Values For Tyre
+        expect
+            ("tyre")~(first 4#'string exec sensorId from .f1.checkSensor[.test.raceDay;.test.lapTable;`tyre])
+     should Return All Values For ALL
+        expect
+            2~count .f1.checkSensor[.test.raceDay;.test.lapTable;`all]  
