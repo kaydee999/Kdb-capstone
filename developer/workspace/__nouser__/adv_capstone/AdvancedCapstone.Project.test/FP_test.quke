@@ -1,0 +1,194 @@
+feature exercise1.1
+    should column file in DB should be renamed to lapId
+        expect 
+            all {`lapId in key hsym `$getenv[`AX_WORKSPACE],"/f1/",string[x],"/event"}each 2020.01.01+til 2 
+    should .d file in DB should be renamed to lapId
+         expect 
+            all {`lapId in get hsym `$getenv[`AX_WORKSPACE],"/f1/",string[x],"/event/.d"}each 2020.01.01+til 2
+    should all column files should be in event dir
+         expect
+            all {all`.d`endTime`lapId`session`time in key hsym `$getenv[`AX_WORKSPACE],"/f1/",string[x],"/event"}each 2020.01.01+til 2
+
+feature exercise1.2
+    should lapId should exist in event table
+        expect
+            `date`session`lapId`time`endTime~cols event
+
+
+feature exercise1.3
+    before 
+        .test.createLapTable:{[eventTab;sensorTab]
+                                eventCross:eventTab cross distinct select sensorId from sensorTab;
+                                w:eventCross`time`endTime;
+                                t:wj[w;`sensorId`time;eventCross;(sensorTab;(avg;`sensorValue))]; 
+                                delete date from t
+                                 };
+         .test.event:select from event where date in 2020.01.02;
+         .test.sensor:select from sensor where date in 2020.01.02,sensorId=`tempFrontLeft;
+         .test.tableLap:.test.createLapTable[.test.event;.test.sensor]; 
+    after
+        delete createLapTable from `.test;
+        delete table from `.test;
+        delete event from `.test;
+        delete sensor from `.test;
+    should check if all values are correct
+        expect
+            .f1.createLapTable[.test.event;select from .test.sensor where sensorId=`tempFrontLeft]~.test.tableLap
+
+feature exercise1.4
+    should check if lap table exists
+        expect
+            `lap in tables[]
+    should create new lap dir in f1 DB
+        expect
+            `lap in key hsym `$getenv[`AX_WORKSPACE],"/f1/2020.01.02"
+    should create col files for lap table
+        expect 
+           `.d`endTime`lapId`sensorId`sensorValue`session`time~ key hsym `$getenv[`AX_WORKSPACE],"/f1/2020.01.02/lap"
+    should .d file should consist of all col names
+        expect 
+            all `endTime`lapId`sensorId`sensorValue`session`time in get hsym `$getenv[`AX_WORKSPACE],"/f1/2020.01.02/lap/.d"
+
+
+feature exercise1.5
+    should check if lap table exists in date dir
+        expect
+            `lap in key hsym `$getenv[`AX_WORKSPACE],"/f1/2020.01.01"
+    should create col files for lap table
+        expect 
+           `.d`endTime`lapId`sensorId`sensorValue`session`time~ key hsym `$getenv[`AX_WORKSPACE],"/f1/2020.01.01/lap"
+    should .d file should consist of all col names
+        expect 
+            all `endTime`lapId`sensorId`sensorValue`session`time in get hsym `$getenv[`AX_WORKSPACE],"/f1/2020.01.02/lap/.d"
+
+feature exercise2.1
+    should check if race day in process
+        expect
+            `raceDay in tables[]
+    should have correct schema
+        expect
+            "stjsfs"~exec t from meta raceDay
+
+feature exercise2.2
+    should check if lap table in process
+        expect
+            `lapTable in tables[]
+    should only contains data for 2nd Jan 2020
+        expect
+            2020.01.02~first exec distinct date from lapTable
+    should contain all columns for 2nd Jan 2020
+        expect
+            lapTable~select from lap where date in 2020.01.02
+            
+feature exercise2.3
+    before
+        .test.checkSensor:{[raceTab;lapTab;mysensor]
+    sensorDict:`all`temp`tyre`wind!
+            (`tempBackLeft`tempFrontLeft`tempFrontRight`tempBackRight`tyrePressureFrontLeft`tyrePressureBackLeft`tyrePressureBackRight`tyrePressureFrontRight`windSpeedFront`windSpeedBack;
+             `tempBackLeft`tempFrontLeft`tempFrontRight`tempBackRight;
+             `tyrePressureFrontLeft`tyrePressureBackLeft`tyrePressureBackRight`tyrePressureFrontRight;
+             `windSpeedFront`windSpeedBack
+            );
+    sensorFilter:enlist sensorDict[mysensor];
+    
+    benchmark:?[lapTab;
+            enlist(in;`sensorId;sensorFilter); // where clause
+            (enlist`sensorId)!enlist `sensorId;                         // cols to group by
+            (enlist`benchmarkValue)!enlist(avg;`sensorValue)            // agg value
+        ];
+    chk:?[raceTab;
+            enlist(in;`sensorId;sensorFilter);
+            (enlist `sensorId)!(enlist`sensorId);
+            `avgValue`stdDevValue!((avg;`sensorValue);(dev;`sensorValue))
+            ];
+    // Join historical benchmarks to new data and calculate diff 
+    chk:update diffValue:"F"$.Q.f'[5;abs[benchmarkValue-avgValue]]
+        from benchmark lj chk;
+    // Add flags if difference between old vs new data >1 and if standard deviation>1.5
+    chk:update diffFlag:?[(diffValue>1);0b;1b],
+               stdFlag:?[(stdDevValue>1.5);0b;1b]
+        from chk;
+    chk
+    }
+    after
+        delete checkSensor from `.test;            
+    should not allowed to use select keyword
+        expect
+            not string[.f1.checkSensor] like "*select*"
+    should return correct values for temp
+        expect
+            .test.checkSensor[raceDay;lapTable;`temp]~.f1.checkSensor[raceDay;lapTable;`temp]
+    should return correct values for wind
+        expect
+            .test.checkSensor[raceDay;lapTable;`wind]~.f1.checkSensor[raceDay;lapTable;`wind]
+     should return correct values for all
+        expect
+            .test.checkSensor[raceDay;lapTable;`all]~.f1.checkSensor[raceDay;lapTable;`all]   
+
+feature exercise2.4
+    should when given the wrong option return error "<mysensor> is not a valid option for mysensor - valid options include `temp`tyre`wind`all"
+        expect 
+            "hello is not a valid option for mysensor - valid options include `temp`tyre`wind`all" ~ .[.f1.checkSensor;(raceDay;lapTable;`hello);{x}]
+
+feature exercise2.5
+    before
+        .test.table2.5: ([sensorName: `temp`tyre`wind]datapoints: 999620, 998721, 1999464);
+    after
+        delete table2.5 from `.test;
+    should func should return same result as before
+        expect
+            .test.table2.5~.viz.createDashboard[]
+    should `p attribute exists
+        expect
+           (first exec a from meta sensor where c = `sensorId) ~ `p 
+
+feature exercise3.2
+    before
+        .test.password:{.Q.sha1 x}each exec password from 1!("S*S";enlist"\t") 0: hsym `$getenv[`AX_WORKSPACE],"/AdvancedCapstone.Data/users.txt";
+    should check password col is updated
+        expect
+            .test.password~exec password from .perm.users
+
+feature exercise3.3
+    before
+        .test.randomHandle:hopen `::5099:twilson:letmewinonce;
+    should .perm.users should exist on HDB process
+        expect
+            .perm.users~.test.randomHandle".perm.users"
+
+feature exercise3.4
+    should define .z.pw on HDB process
+        expect 
+           100h~type .test.randomHandle".z.pw" 
+    should give access to users with correct password
+        expect
+            -6h~type hopen `::5099:psmith:ilovelewisham
+    should give access to users with wrong password
+        expect
+            "access"~@[hopen;`::5099:psmith:ilovelewis;{x}]
+
+feature exercise3.5
+    should return first element of parse tree
+        expect
+            `.vis.addSensorName~.test.randomHandle".perm.parseQuery[\".vis.addSensorName[sensor]\"]"
+    should return ! if given update query
+        expect
+            "!"~first string .test.randomHandle".perm.parseQuery[\"update from tab\"]"
+
+
+feature exercise3.6
+    before
+        .test.fiahandle:hopen `::5099:fiauser:getmeallthedata;
+    should define .z.pg on remote process
+        expect
+            100h~type .test.randomHandle".z.pg"
+    should fiauser can run one function
+        expect
+            99h~type .test.fiahandle".fia.getSummaryReport[]"
+    should fiauser cant run tables[]
+        expect
+            `notAuthorized~@[.test.fiahandle;"tables[]";{x}]
+    should team members can run any function
+        expect
+            11h~ type .test.randomHandle"\\f"
+           

@@ -1,0 +1,12 @@
+feature .perm.parseQuery
+
+    before
+        // Code here will execute before the feature is run
+        f:{x+y}
+
+    after
+        // Code here will execute after the feature is run
+
+    should exhibit a behaviour
+        expect a specific result
+        `f~.perm.parseQuery["f[1;2]"]

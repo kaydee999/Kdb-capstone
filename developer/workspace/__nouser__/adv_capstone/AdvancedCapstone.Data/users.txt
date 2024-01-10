@@ -1,0 +1,6 @@
+user	password	api
+jmurphy	bahrain22	all
+psmith	ilovelewisham	all
+ataylor	redbulldoesntgivewings	all
+twilson	letmewinonce	all
+fiauser	getmeallthedata	.fia.getSummaryReport
