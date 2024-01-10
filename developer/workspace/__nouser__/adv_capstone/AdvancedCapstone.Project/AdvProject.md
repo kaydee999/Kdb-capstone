@@ -112,7 +112,8 @@ Oh no! There is an error with our ```event``` table on disk - the column "`lapId
 ```
 ```q
 // your code here - or work in the scratchpad
-
+system["l ",getenv[`AX_WORKSPACE],"/AdvancedCapstone.Setup/dbmaint.q" ]
+renamecol[`:.;`event;`lappId;`lapId]
 ```
 Great! Once you think you've created the column correct, let test by reloading our modified database.
 
@@ -122,7 +123,7 @@ To do this, you need to load in the top level database directory from where you'
 
 ```q
 // your code here - or work in the scratchpad
-
+\l .
 ```
 
 Let's check our table structure again:
@@ -191,7 +192,12 @@ We recommend testing on a small subset of data first (e.g. `sensor` & `event` in
 Please include your finished code in *Workspace->AdvancedCapstone.Functions->.f1.createLapTable*.
 ```q
 // your code here - or work in the scratchpad
-
+.f1.createLapTable:{[eventTable;sensorTable]
+    uniqueSensorIds: select distinct sensorId from sensorTable;
+    eventCrossed:eventTable cross uniqueSensorIds;
+    w:(eventCrossed[`time];eventCrossed[`endTime]);
+    delete date from wj[w;`sensorId`time;eventCrossed;(sensorTable;(avg;`sensorValue))]
+    }
 ```
 Once you think you are complete, you can test your function by right clicking the *.fi.createLapTable* function 
 in the Workspace navigation and choosing *Code->Run Tests*. 
@@ -209,6 +215,10 @@ database as `lap`.**
 *Helper Exercises: Try exercises in **Partitioned** module before attempting this exercise* 
 ```q
 // your code here - or work in the scratchpad 
+e:select from event where date=2020.01.02, session=`P3
+s:select from sensor where date=2020.01.02, session=`P3
+lap:.f1.createLapTable[e;s]
+.Q.dpft[`:.;2020.01.02;`sensorId;`lap]
 ```
 
 Lets check and see if that worked
@@ -224,6 +234,7 @@ is missing from that partition)**
 *Helper Exercises: Try exercises in **Partitioned** module before attempting this exercise* 
 ```q
 // your code here - or work in the scratchpad
+.Q.chk[`:.]
 ```
 
 Lets check and see if that worked?
@@ -286,6 +297,7 @@ The schema of the table should be as follows:
 
 ```q
 // your code here - or work in the scratchpad or use Table Importer Functionality
+raceDay:("STJSFS";enlist",")0:`:../AdvancedCapstone.Data/raceDay.csv
 ```
 
 
@@ -301,6 +313,8 @@ date    |   sensorId   |    session| lapId| time   |      endTime  |    sensorVa
 
 ```q
 // your code here - or work in the scratchpad
+\l .
+lapTable: select from lap where date=2020.01.02
 ```
 
 
@@ -471,6 +485,7 @@ so that it completes execution in half the original time**
 
 ```q
 // your code here or work in scratchpad
+setattrcol[`:.;`sensor;`sensorId;`p];
 ```
 This function calls multiple nested functions so your task is to identify the bottleneck function. Then apply what you have learned in this course in order to make it run faster (half the original time).
 
@@ -508,6 +523,9 @@ First open a handle to this port and save this to a variable called ```hdbH```. 
 
 ```q
 // your code here - or work in the scratchpad
+hdbH: hopen 5099
+hdbH"system[\"l \",getenv[`AX_WORKSPACE],\"/f1\" ]"
+/hclose hdbH
 ```
 
 *Note you also have the option to access remote process using Developer's Remote Scratchpad instead of via handle ```hdbH``` - see instructions in DeveloperTips.md.*
@@ -536,6 +554,11 @@ The table should be keyed on the first column user.
 
 ```q
 // your code here or work in remote scratchpad
+.perm.users:("SSS";enlist"\t")0:`:../AdvancedCapstone.Data/users.txt;
+encryptp: .Q.sha1 each exec string password from .perm.users;
+`user xkey `.perm.users
+update password:encryptp from `.perm.users
+/meta .perm.users
 ```
 To test your code, run the tests at Workspace->AdvancedCapstone.Functions.test->.perm.users.quke to verify correctness.
 
@@ -545,6 +568,7 @@ To test your code, run the tests at Workspace->AdvancedCapstone.Functions.test->
 
 ```q
 // your code here or work in remote scratchpad
+hdbH(set;`.perm.users;.perm.users);
 ```
 
 
@@ -571,6 +595,7 @@ If it doesn't match, it should return an `'access` error.
 *Helper Exercises: Try exercises in **Advanced IPC** module before attempting this exercise* 
 ```q
 // your code here or work in remote scratchpad
+hdbH".z.pw:{[usr;pwd] $[(.Q.sha1 pwd)~.perm.users[usr][`password];1b;0b]}"
 ```
  
 Let's test if we can access using the different users with the **correct** password. This should fail 
@@ -614,6 +639,7 @@ such that:
 `.fia.getSummaryReport
 
 .perm.parseQuery["select from tab"]
+type .perm.parseQuery["tables[]"]
 // returns
 ?
 ```
@@ -624,6 +650,8 @@ You may want to define this locally first and then use `set` to define on remote
 happy with this function.
 ```q
 // your code here or work in remote scratchpad
+.perm.parseQuery:{[x] if[-10h=type x;x:enlist x]; $[10h=type x;(parse x)[0];x]}
+hdbH(set;`.perm.parseQuery;.perm.parseQuery)
 ```
 
 
@@ -643,6 +671,8 @@ This is quite advanced, so here are the steps required:
 
 ```q
 // your code here or work in remote scratchpad
+hdbH".z.pg:{[query] access:.perm.users[.z.u][`api]; $[access~`all;value query;access~(.perm.parseQuery[query]);value query;`$\"notAuthorized\"]}"
+/hdbH close
 ```
 *NB: You may run into the issue were you defined .z.pg erroneously on first few attempts which 
 blocks subsequent calls to the Server. We recommend testing this function locally first to ensure 
@@ -659,12 +689,16 @@ After defining `.z.pg` correctly you should see the following behaviour:
 Calling as user with all access:
 ```q
 jmurphyHandle:hopen `::5099:jmurphy:bahrain22
+/hclose jmurphyHandle
+/HmurphyHand.perm.users[.z.u][`api]
+/.perm.parseQuery[".fia.getSummaryReport[]"]
 jmurphyHandle"tables[]"  // works as user jmurphy has access to run anything
 ```
 
 Calling as fiauser a random query returns:
 ```q
 fiaHandle:hopen `::5099:fiauser:getmeallthedata
+/hclose fiaHandle
 fiaHandle"tables[]"  // get `notAuthorized
 ```
 
@@ -694,7 +728,7 @@ To be marked complete and receive your certificate there are two final steps: co
 2. To be marked completed, please run the below which will test the variables and functions you've 
 created: 
 ```q
-submitProject["<your email here>"]
+submitProject[]
 ```
 
 We hope you enjoyed the course and found it worthwhile! 
