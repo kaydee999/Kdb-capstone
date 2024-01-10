@@ -1,0 +1,10 @@
+feature .f1.createLapTable
+    before
+        .test.lapTable:([]date:2#2020.01.02;session:2#`P3;lapId:1 1;time:13:00:00.00 13:02:48.156;endTime:13:02:48.156 13:04:57.689);
+        .test.sensorTable:([]date:6#2020.01.02;sensorId:((2#`tempBackLeft),(2#`tempBackRight),2#`tyrePressureBackLeft);time:13:00:00.00+6?3000;lapId:6#1;units:((4#`degreesCel),2#`pascals);sensorValue:((20+4?1.),200+2?1.);session:6#`P3); 
+    should Each Sensor Should Have Start Time From Lap Table
+        expect 
+            ((3#13:00:00.000),3#13:02:48.156)~exec time from .f1.createLapTable[.test.lapTable;.test.sensorTable]
+    should Each Sensor Should Have End Time From Lap Table
+        expect 
+            ((3#13:02:48.156),3#13:04:57.689)~exec endTime from .f1.createLapTable[.test.lapTable;.test.sensorTable]
